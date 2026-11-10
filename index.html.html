@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tic Tac Toe - User vs Computer</title>
+<style>
+  * {box-sizing: border-box;}
+  body {
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+    margin: 0;
+  }
+  .container {
+    text-align: center;
+    width: 320px;
+    animation: fadein 1s ease-in;
+  }
+  h1 {margin-bottom: 10px;}
+  .mode-select {display: flex; flex-direction: column; gap: 10px;}
+  button {
+    background: #0077ff; color: #fff; border: none;
+    padding: 10px 20px; border-radius: 8px; cursor: pointer;
+    font-size: 1rem; transition: background 0.3s;
+  }
+  button:hover {background: #005fcc;}
+  .board {
+    display: grid; grid-template-columns: repeat(3, 100px);
+    grid-gap: 5px; justify-content: center; margin-top: 20px;
+  }
+  .cell {
+    width: 100px; height: 100px;
+    background: white; display: flex;
+    justify-content: center; align-items: center;
+    font-size: 2.5rem; cursor: pointer;
+    border-radius: 10px;
+    transition: transform 0.2s;
+  }
+  .cell:hover {transform: scale(1.05);}
+  .info {
+    margin-top: 10px;
+    font-size: 1rem;
+  }
+  .hidden {display: none;}
+  .celebration {
+    font-size: 2rem; margin-top: 10px; animation: pop 1s infinite alternate;
+  }
+  @keyframes pop {0%{transform:scale(1);}100%{transform:scale(1.2);}}
+  @keyframes fadein {from{opacity:0;}to{opacity:1;}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div id="modeScreen">
+    <h1>Choose Mode</h1>
+    <div class="mode-select">
+      <button id="easyBtn">🟢 Play Easy AI</button>
+      <button id="smartBtn">🧠 Play Smart AI</button>
+    </div>
+  </div>
+
+  <div id="gameScreen" class="hidden">
+    <h1>Tic Tac Toe</h1>
+    <div class="info"><strong>You: X</strong> | <strong>Computer: O</strong></div>
+    <div class="board" id="board"></div>
+    <div class="info" id="message"></div>
+    <div class="info">
+      <p>Scoreboard: You - <span id="scoreX">0</span> | Computer - <span id="scoreO">0</span> | Draws - <span id="draws">0</span></p>
+    </div>
+    <div class="celebration" id="celebration"></div>
+    <div class="buttons">
+      <button id="playAgain">Play Again</button>
+      <button id="newGame">New Game</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const modeScreen = document.getElementById('modeScreen');
+const gameScreen = document.getElementById('gameScreen');
+const boardEl = document.getElementById('board');
+const msg = document.getElementById('message');
+const celebration = document.getElementById('celebration');
+const playAgain = document.getElementById('playAgain');
+const newGame = document.getElementById('newGame');
+const scoreXEl = document.getElementById('scoreX');
+const scoreOEl = document.getElementById('scoreO');
+const drawsEl = document.getElementById('draws');
+let board, currentPlayer, gameOver, aiMode;
+let scoreX = 0, scoreO = 0, draws = 0;
+
+function startGame(mode) {
+  aiMode = mode;
+  modeScreen.classList.add('hidden');
+  gameScreen.classList.remove('hidden');
+  resetBoard();
+}
+
+document.getElementById('easyBtn').onclick = ()=>startGame('easy');
+document.getElementById('smartBtn').onclick = ()=>startGame('smart');
+playAgain.onclick = ()=>resetBoard();
+newGame.onclick = ()=>{
+  gameScreen.classList.add('hidden');
+  modeScreen.classList.remove('hidden');
+};
+
+function resetBoard() {
+  board = Array(9).fill('');
+  currentPlayer = 'X';
+  gameOver = false;
+  boardEl.innerHTML = '';
+  msg.textContent = '';
+  celebration.textContent = '';
+  for(let i=0;i<9;i++){
+    const cell = document.createElement('div');
+    cell.className='cell';
+    cell.addEventListener('click',()=>makeMove(i));
+    boardEl.appendChild(cell);
+  }
+}
+
+function makeMove(i) {
+  if (gameOver || board[i] !== '' || currentPlayer !== 'X') return;
+  board[i] = 'X';
+  renderBoard();
+  if (checkWinner('X')) return endGame('X');
+  if (board.every(cell => cell !== '')) return endGame('draw');
+  currentPlayer = 'O';
+  setTimeout(computerMove, 500);
+}
+
+function computerMove() {
+  if (gameOver) return;
+  let move;
+  if (aiMode === 'easy') {
+    const empty = board.map((v, idx)=>v===''?idx:null).filter(v=>v!==null);
+    move = empty[Math.floor(Math.random()*empty.length)];
+  } else {
+    move = bestMove();
+  }
+  board[move] = 'O';
+  renderBoard();
+  if (checkWinner('O')) return endGame('O');
+  if (board.every(cell => cell !== '')) return endGame('draw');
+  currentPlayer = 'X';
+}
+
+function renderBoard() {
+  const cells = boardEl.querySelectorAll('.cell');
+  board.forEach((val, i)=>{ cells[i].textContent = val; });
+}
+
+function endGame(winner) {
+  gameOver = true;
+  if (winner==='X'){
+    msg.textContent = '🎉 You Win!';
+    celebration.textContent = '🏆🎊🥳🎉';
+    scoreX++;
+  } else if (winner==='O'){
+    msg.textContent = '💻 Computer Wins!';
+    celebration.textContent = '🤖🔥🏆';
+    scoreO++;
+  } else {
+    msg.textContent = '😐 It\'s a Draw!';
+    celebration.textContent = '🤝';
+    draws++;
+  }
+  scoreXEl.textContent = scoreX;
+  scoreOEl.textContent = scoreO;
+  drawsEl.textContent = draws;
+}
+
+function checkWinner(player) {
+  const wins = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+  return wins.some(combo=>combo.every(i=>board[i]===player));
+}
+
+// Smart AI
+function bestMove(){
+  let bestScore = -Infinity;
+  let move;
+  for(let i=0;i<9;i++){
+    if (board[i]===''){
+      board[i]='O';
+      let score = minimax(board,0,false);
+      board[i]='';
+      if(score>bestScore){bestScore=score;move=i;}
+    }
+  }
+  return move;
+}
+function minimax(board, depth, isMaximizing){
+  if (checkWinner('O')) return 1;
+  if (checkWinner('X')) return -1;
+  if (board.every(cell=>cell!=='')) return 0;
+
+  if (isMaximizing){
+    let best = -Infinity;
+    for(let i=0;i<9;i++){
+      if (board[i]===''){
+        board[i]='O';
+        best = Math.max(best, minimax(board, depth+1, false));
+        board[i]='';
+      }
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for(let i=0;i<9;i++){
+      if (board[i]===''){
+        board[i]='X';
+        best = Math.min(best, minimax(board, depth+1, true));
+        board[i]='';
+      }
+    }
+    return best;
+  }
+}
+</script>
+</body>
+</html>
